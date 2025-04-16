@@ -1,28 +1,71 @@
+import os
+import gspread
+from google.oauth2.service_account import Credentials
+from dotenv import load_dotenv
 import requests
+from datetime import datetime
 
-# LINE Messaging APIのチャネルアクセストークン
-LINE_ACCESS_TOKEN = "Yis8B6NjIZ0Pbn24iMuL+BzXA2b/a1P3dp7HYdkejPmOEKdV9DISoHGnRkRRwsuRHSZhsoOzARHVUM1tB8fpTqao9o2IRSz02cwtouUigJ8NzStDdIkZHvjF6bUaRcZKM0Lv4400yFHCVFCJA7+k1AdB04t89/1O/w1cDnyilFU="
+# .envから読み込む
+load_dotenv()
+LINE_TOKEN = os.getenv("LINE_TOKEN")
+LINE_USER_ID = os.getenv("LINE_USER_ID")
 
-# 通知メッセージ
-message = "🔔 テスト送信：PythonからLINEに通知できました！"
+# Google認証
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+creds = Credentials.from_service_account_file('credentials.json', scopes=SCOPES)
+gc = gspread.authorize(creds)
 
-# リクエスト内容
+# シートを開く
+SPREADSHEET_KEY = '1bln9goTtV-jkiIGrYvPkPbneE81w2Z9VMPjph0R8_Z4'
+worksheet = gc.open_by_key(SPREADSHEET_KEY).worksheet("タスク通知予約②")
+
+# 今日の日付
+today = datetime.now().strftime('%Y/%m/%d')
+
+# データ取得
+data = worksheet.get_all_values()[1:]  # ヘッダーを除外
+filtered = [row for row in data if row[0] == today and row[4] == "即時"]
+
+# セクションごとに分類
+schedule = []
+task = []
+confirm = []
+
+for row in filtered:
+    content = row[2].strip()
+    category = row[5].strip()
+
+    if category == "スケジュール":
+        schedule.append(content)
+    elif category == "タスク":
+        task.append(content)
+    elif category == "前確":
+        confirm.append(content)
+
+# 未入力項目チェック
+if not schedule and not task and not confirm:
+    raise Exception("即時通知対象のセルが空です。スプレッドシートを確認してください。")
+
+# 通知内容を整形
+message = f"本日({today})の予定\n\n"
+
+message += "スケジュール\n"
+message += "※今回はなし\n" if not schedule else "\n".join(schedule)
+message += "\n\nタスク\n"
+message += "※今回はなし\n" if not task else "\n".join([f"{i+1}. {t}" for i, t in enumerate(task)])
+message += "\n\n前確\n"
+message += "※今回はなし\n" if not confirm else "\n".join([f"{i+1}. {c}" for i, c in sorted(enumerate(confirm), key=lambda x: x[1])])
+
+# LINE通知
 headers = {
-    "Authorization": f"Bearer {LINE_ACCESS_TOKEN}",
+    "Authorization": f"Bearer {LINE_TOKEN}",
     "Content-Type": "application/json"
 }
-data = {
-    "to": "U7f0e1283e0aa71f58a737598191da23c",  # ユーザーID（←テスト通知先）
-    "messages": [
-        {
-            "type": "text",
-            "text": message
-        }
-    ]
+payload = {
+    "to": LINE_USER_ID,
+    "messages": [{"type": "text", "text": message}]
 }
+url = "https://api.line.me/v2/bot/message/push"
 
-# LINEのPush通知エンドポイントへ送信
-response = requests.post("https://api.line.me/v2/bot/message/push", headers=headers, json=data)
-
-# 結果表示（失敗時はエラー表示）
-print("✅ 通知成功" if response.status_code == 200 else f"❌ 通知失敗: {response.text}")
+response = requests.post(url, headers=headers, json=payload)
+print(f"LINE送信ステータス: {response.status_code}")
