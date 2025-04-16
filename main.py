@@ -24,7 +24,7 @@ today = datetime.now().strftime('%Y/%m/%d')
 
 # データ取得
 data = worksheet.get_all_values()[1:]  # ヘッダーを除外
-filtered = [row for row in data if row[0] == today and row[4] == "即時"]
+filtered = [row for row in data if row[0] == today and row[3] == "即時"]  # D列が通知タイプ
 
 # セクションごとに分類
 schedule = []
@@ -32,8 +32,8 @@ task = []
 confirm = []
 
 for row in filtered:
-    content = row[2].strip()
-    category = row[5].strip()
+    content = row[2].strip()         # C列が通知内容
+    category = row[4].strip()        # E列がタイプ（スケジュール、タスク、前確）
 
     if category == "スケジュール":
         schedule.append(content)
