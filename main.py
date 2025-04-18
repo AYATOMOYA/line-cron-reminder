@@ -1,4 +1,4 @@
-import os
+iimport os
 import gspread
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
@@ -22,18 +22,20 @@ worksheet = gc.open_by_key(SPREADSHEET_KEY).worksheet("タスク通知予約②"
 # 今日の日付
 today = datetime.now().strftime('%Y/%m/%d')
 
-# データ取得
-data = worksheet.get_all_values()[1:]  # ヘッダーを除外
-filtered = [row for row in data if row[0] == today and row[3] == "即時"]  # D列が通知タイプ
+# データ取得（ヘッダー除く）
+data = worksheet.get_all_values()[1:]
 
-# セクションごとに分類
+# 通知タイプが「即時」の行を抽出（D列 → row[3]）
+filtered = [row for row in data if row[0] == today and row[3] == "即時"]
+
+# セクションごとに分類（E列 → row[4]）
 schedule = []
 task = []
 confirm = []
 
 for row in filtered:
-    content = row[2].strip()         # C列が通知内容
-    category = row[4].strip()        # E列がタイプ（スケジュール、タスク、前確）
+    content = row[2].strip()  # タスク内容（C列）
+    category = row[4].strip()  # 項目（E列）
 
     if category == "スケジュール":
         schedule.append(content)
@@ -46,7 +48,7 @@ for row in filtered:
 if not schedule and not task and not confirm:
     raise Exception("即時通知対象のセルが空です。スプレッドシートを確認してください。")
 
-# 通知内容を整形
+# 通知内容整形
 message = f"本日({today})の予定\n\n"
 
 message += "スケジュール\n"
