@@ -60,7 +60,7 @@ if not task:
 else:
     message += "\n".join([f"{i+1}. {t.split('】')[0]}】\n　{t.split('】')[1]}" if '】' in t else f"{i+1}. {t}" for i, t in enumerate(task)])
 
-message += "\n\n🔍 前確\n"
+message += "\n\n☎ 前確\n"
 if not confirm:
     message += "※今回はなし\n"
 else:
