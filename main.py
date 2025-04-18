@@ -48,15 +48,23 @@ for row in filtered:
 if not schedule and not task and not confirm:
     raise Exception("即時通知対象のセルが空です。スプレッドシートを確認してください。")
 
-# 通知内容整形
-message = f"本日({today})の予定\n\n"
+# 通知内容を整形（見やすいデザインへ）
+message = f"本日（{today}）の予定\n\n"
 
-message += "スケジュール\n"
+message += "📅 スケジュール\n"
 message += "※今回はなし\n" if not schedule else "\n".join(schedule)
-message += "\n\nタスク\n"
-message += "※今回はなし\n" if not task else "\n".join([f"{i+1}. {t}" for i, t in enumerate(task)])
-message += "\n\n前確\n"
-message += "※今回はなし\n" if not confirm else "\n".join([f"{i+1}. {c}" for i, c in sorted(enumerate(confirm), key=lambda x: x[1])])
+
+message += "\n\n📝 タスク\n"
+if not task:
+    message += "※今回はなし\n"
+else:
+    message += "\n".join([f"{i+1}. {t.split('】')[0]}】\n　{t.split('】')[1]}" if '】' in t else f"{i+1}. {t}" for i, t in enumerate(task)])
+
+message += "\n\n🔍 前確\n"
+if not confirm:
+    message += "※今回はなし\n"
+else:
+    message += "\n".join([f"{i+1}. {c.split('】')[0]}】\n　{c.split('】')[1]}" if '】' in c else f"{i+1}. {c}" for i, c in sorted(enumerate(confirm), key=lambda x: x[1])])
 
 # LINE通知
 headers = {
